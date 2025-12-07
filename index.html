@@ -29,6 +29,7 @@
             background-color: #1C1C1C;
             padding-top: 60px;
             overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
         }
 
         /* 图片容器样式 */
@@ -38,19 +39,34 @@
             flex-direction: column;
         }
 
-        /* 图片样式 - 响应式设计 */
+        /* 图片样式 - 响应式设计（优化跨设备显示） */
         .work-image {
             width: 100%;
             height: auto;
             display: block;
+            backface-visibility: hidden; /* 优化GPU渲染 */
+            will-change: opacity; /* 提升加载过渡性能 */
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
         }
 
-        /* 骨架屏样式 */
+        /* 骨架屏样式（优化动画感知） */
         .skeleton {
             width: 100%;
             height: 1080px;
             background-color: rgba(255, 255, 255, 0.2);
             display: block;
+            /* 骨架屏呼吸动画，提升加载感知 */
+            animation: skeleton-loading 1.5s infinite alternate;
+        }
+
+        @keyframes skeleton-loading {
+            from {
+                background-color: rgba(255, 255, 255, 0.15);
+            }
+            to {
+                background-color: rgba(255, 255, 255, 0.25);
+            }
         }
 
         /* 网络异常提示样式 */
@@ -61,12 +77,14 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 100;
+            padding: 0 20px; /* 移动端左右间距 */
         }
 
         .error-message {
             color: #FFFFFF;
             font-size: 18px;
             margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.3); /* 增强文字可读性 */
         }
 
         .reload-btn {
@@ -78,11 +96,18 @@
             border-radius: 2px;
             font-size: 14px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            outline: none;
+            -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
         }
 
         .reload-btn:hover {
             background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .reload-btn:active {
+            transform: translateY(0);
         }
 
         /* 桌面端适配 */
@@ -97,9 +122,25 @@
             }
         }
 
+        /* 小屏移动端适配优化 */
+        @media (max-width: 375px) {
+            .error-message {
+                font-size: 16px;
+            }
+
+            .skeleton {
+                height: 800px; /* 适配小屏高度 */
+            }
+        }
+
         /* 隐藏错误提示默认状态 */
         .hidden {
             display: none;
+        }
+
+        /* 图片加载中状态 */
+        .loading {
+            opacity: 0;
         }
     </style>
 </head>
@@ -119,28 +160,71 @@
         let isLoading = false;
         let hasMoreImages = true;
         const batchSize = 3; // 每次加载3张图片
+        const maxRetryCount = 2; // 每张图片最大重试次数（增强容错）
 
-        // 页面加载时滚动到顶部
+        // 页面加载时滚动到顶部（兼容各浏览器）
         window.addEventListener('load', () => {
-            window.scrollTo(0, 0);
-        });
-
-        // 禁止右键菜单和图片拖拽
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        document.addEventListener('dragstart', (e) => {
-            if (e.target.tagName === 'IMG') e.preventDefault();
-        });
-
-        // 初始加载图片
-        loadImages();
-
-        // 滚动加载更多图片
-        window.addEventListener('scroll', () => {
-            if (hasMoreImages && !isLoading && 
-                window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-                loadImages();
+            if (window.scrollTo) {
+                window.scrollTo(0, 0);
+            } else if (document.documentElement.scrollTop) {
+                document.documentElement.scrollTop = 0;
+            } else if (document.body.scrollTop) {
+                document.body.scrollTop = 0;
             }
         });
+
+        // 禁止右键菜单和图片拖拽（增强版权保护）
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { capture: true });
+
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { capture: true });
+
+        // 禁止图片保存的额外防护
+        document.addEventListener('copy', (e) => {
+            const selection = window.getSelection();
+            if (selection.toString().trim() === '' && e.target.tagName === 'IMG') {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { capture: true });
+
+        // 初始加载图片（添加DOM就绪检测）
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLoad);
+        } else {
+            initLoad();
+        }
+
+        // 滚动加载更多图片（优化滚动检测，减少性能消耗）
+        let scrollTimeout = null;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                const scrollBottom = window.innerHeight + window.scrollY;
+                const documentHeight = Math.max(
+                    document.body.scrollHeight,
+                    document.documentElement.scrollHeight,
+                    document.body.offsetHeight,
+                    document.documentElement.offsetHeight,
+                    document.body.clientHeight,
+                    document.documentElement.clientHeight
+                );
+
+                if (hasMoreImages && !isLoading && scrollBottom >= documentHeight - 500) {
+                    loadImages();
+                }
+            }, 100); // 节流优化，100ms触发一次
+        }, { passive: true }); // passive提升滚动性能
 
         // 重新加载按钮事件
         reloadBtn.addEventListener('click', () => {
@@ -151,12 +235,27 @@
             loadImages();
         });
 
-        // 加载图片函数
+        // 初始化加载
+        function initLoad() {
+            // 检测网络状态（增强跨环境适配）
+            if (navigator.onLine) {
+                loadImages();
+            } else {
+                showError();
+                // 监听网络恢复
+                window.addEventListener('online', () => {
+                    errorContainer.classList.add('hidden');
+                    loadImages();
+                });
+            }
+        }
+
+        // 加载图片函数（优化跨环境兼容性）
         async function loadImages() {
             if (!hasMoreImages || isLoading) return;
             
             isLoading = true;
-            let loadFailed = false;
+            let batchLoadFailed = false;
 
             // 添加骨架屏
             for (let i = 0; i < batchSize; i++) {
@@ -167,16 +266,16 @@
             }
 
             try {
-                // 批量加载图片
+                // 批量加载图片（带重试机制）
                 const loadPromises = [];
                 for (let i = 0; i < batchSize; i++) {
                     const imageIndex = currentImageIndex + i;
-                    loadPromises.push(loadSingleImage(imageIndex));
+                    loadPromises.push(loadSingleImageWithRetry(imageIndex, maxRetryCount));
                 }
 
                 const results = await Promise.allSettled(loadPromises);
                 
-                // 检查是否所有图片都加载失败
+                // 检查批量加载结果
                 const failedCount = results.filter(res => res.status === 'rejected').length;
                 if (failedCount === batchSize) {
                     hasMoreImages = false;
@@ -188,42 +287,76 @@
 
                 currentImageIndex += batchSize;
             } catch (error) {
+                console.error('批量加载图片失败:', error);
                 showError();
             } finally {
                 isLoading = false;
             }
         }
 
-        // 加载单张图片
-        async function loadSingleImage(index) {
+        // 带重试机制的单图加载（增强跨环境容错）
+        async function loadSingleImageWithRetry(index, retryCount) {
+            let attempts = 0;
+            while (attempts < retryCount) {
+                try {
+                    return await loadSingleImage(index);
+                } catch (error) {
+                    attempts++;
+                    if (attempts >= retryCount) {
+                        console.error(`图片加载失败（已重试${retryCount}次）: work${index}.png`, error);
+                        throw error;
+                    }
+                    // 重试间隔（指数退避）
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+                }
+            }
+        }
+
+        // 加载单张图片（优化跨浏览器兼容性）
+        function loadSingleImage(index) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
+                
+                // 跨环境加载优化
+                img.crossOrigin = 'anonymous'; // 处理跨域图片（如果需要）
+                img.loading = 'lazy'; // 原生懒加载（增强浏览器兼容性）
+                
                 img.src = `images/work${index}.png`;
-                img.className = 'work-image';
+                img.className = 'work-image loading';
                 img.alt = `设计作品 ${index}`;
+                img.setAttribute('draggable', 'false'); // 明确禁止拖拽
+                img.setAttribute('unselectable', 'on'); // 禁止选中
 
                 // 图片加载成功
-                img.onload = () => {
+                img.onload = function() {
+                    this.classList.remove('loading');
                     const skeleton = document.getElementById(`skeleton-${index}`);
                     if (skeleton) {
-                        skeleton.replaceWith(img);
+                        skeleton.replaceWith(this);
                     } else {
-                        imageContainer.appendChild(img);
+                        imageContainer.appendChild(this);
                     }
                     resolve(index);
                 };
 
                 // 图片加载失败
-                img.onerror = () => {
+                img.onerror = function() {
                     const skeleton = document.getElementById(`skeleton-${index}`);
                     if (skeleton) skeleton.remove();
-                    reject(index);
+                    reject(new Error(`图片加载失败: work${index}.png`));
                 };
 
-                // 超时处理（5秒）
+                // 超时处理（适配慢网络环境）
                 setTimeout(() => {
-                    reject(new Error(`图片加载超时: work${index}.png`));
+                    reject(new Error(`图片加载超时（5秒）: work${index}.png`));
                 }, 5000);
+
+                // 兼容IE浏览器的onreadystatechange事件
+                img.onreadystatechange = function() {
+                    if (this.readyState === 'complete' || this.readyState === 'loaded') {
+                        this.onload();
+                    }
+                };
             });
         }
 
