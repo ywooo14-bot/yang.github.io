@@ -4,95 +4,120 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>作品集</title>
+
+  <!-- favicon（来自 favicon_io 文件夹）-->
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
+  <link rel="manifest" href="favicon_io/site.webmanifest">
+  <meta name="theme-color" content="#1C1C1C">
+
   <style>
-    /* 页面整体 */
     :root {
       --bg: #1C1C1C;
-      --skeleton: rgba(255,255,255,0.20); /* 白色 20% */
+      --white20: rgba(255,255,255,0.20); /* 骨架颜色 20% 白色 */
       --white: #FFFFFF;
     }
     html,body{
-      height:100%;
       margin:0;
       padding:0;
+      height:100%;
       background:var(--bg);
       color:var(--white);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+      user-select: none; /* 禁止选中文字 */
     }
 
-    /* 内容容器：顶部内边距 60px，居中 */
-    .wrap{
-      padding-top:60px; /* 你要求的顶部间距 */
+    /* 页面容器：手机 100% 宽度；桌面宽度 65%，最大1200 */
+    .wrap {
+      box-sizing: border-box;
+      padding-top: 60px; /* 内容区顶部60 */
       display:flex;
       justify-content:center;
-      box-sizing:border-box;
-      min-height:100%;
-    }
-
-    /* 内容区宽度规则：手机 100%，桌面 65% 最大 1200px */
-    .content {
+      align-items:flex-start;
       width:100%;
-      box-sizing:border-box;
-      margin:0;
+      min-height:100vh;
     }
-    @media (min-width: 768px) {
+    .content {
+      width: 100%;
+      max-width: 1200px;
+      /* 桌面占比 65%：
+         使用媒体查询在大屏时限制为 65% 宽度的容器，再由 max-width 限制 */
+    }
+    @media(min-width: 900px){
       .content {
-        width:65vw;             /* 65% 窗口宽度 */
-        max-width:1200px;      /* 最大 1200px */
+        width: 65vw; /* 65% 视口宽度 */
+        max-width: 1200px;
       }
     }
 
-    /* 每张图一项（无间距）*/
-    .item {
-      width:100%;
+    /* 图片栈：一列展示，间距0 */
+    .stack {
+      display:flex;
+      flex-direction:column;
+      gap:0;
       margin:0;
       padding:0;
-      overflow:hidden;
-      position:relative;
-      line-height:0; /* 去掉空隙 */
     }
 
-    /* 图片样式：宽度 100%，高度自适应（宽度一致，高度不定） */
-    .item img {
-      display:block;
+    /* 单张项：使用背景图填充（防止直接右键图片另存为） */
+    .item {
       width:100%;
-      height:auto;
-      object-fit:cover; /* 尽量填充宽度 */
-      user-select:none;
+      position:relative;
+      overflow:hidden;
+      background-color: #000;
+      background-position:center;
+      background-size:cover; /* Fill */
+      min-height: 1080px; /* 如果图片比 1080 小，会被拉伸成 Fill；按需求可调整 */
       -webkit-user-drag: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
+      user-select: none;
     }
 
-    /* 骨架占位：宽度与图片一致，高度 1080 px，Fill（填充）*/
+    /* 骨架图：宽度和图片一致，高度1080，颜色FFFFFF 20% */
     .skeleton {
       width:100%;
-      height:1080px; /* 要求固定高度 1080 */
-      background: var(--skeleton);
+      height:1080px;
+      background: var(--white20);
       display:block;
-      box-sizing:border-box;
+      transition:opacity .3s ease;
     }
 
-    /* 网络异常 overlay */
-    .overlay {
-      position:fixed;
-      inset:0;
-      display:none; /* 默认隐藏 */
-      justify-content:center;
+    /* 一个透明遮罩，阻止长按/右键直接保存 */
+    .blocker {
+      position:absolute;
+      left:0;
+      right:0;
+      top:0;
+      bottom:0;
+      z-index:5;
+      /* pointer-events: auto; 保持可以阻止默认行为 */
+    }
+
+    /* 网络异常覆盖提示 */
+    .error-overlay {
+      position: fixed;
+      inset: 0;
+      display:flex;
       align-items:center;
-      z-index:9999;
+      justify-content:center;
       background: rgba(0,0,0,0.6);
-    }
-    .overlay .box {
+      z-index:9999;
+      color: var(--white);
       text-align:center;
-      color:var(--white);
+      padding: 20px;
     }
-    .overlay p {
+    .error-box {
+      background: transparent;
+      border-radius: 8px;
+      padding: 18px;
+      display:inline-block;
+    }
+    .error-box p {
       margin:0 0 20px 0;
       font-size:16px;
+      color: var(--white);
     }
     .reload-btn {
       display:inline-flex;
@@ -100,195 +125,187 @@
       justify-content:center;
       width:96px;
       height:36px;
-      background:var(--white);
-      color:var(--bg);
       border-radius:4px;
+      border: none;
+      background: var(--white);
+      color: var(--bg);
       font-size:14px;
       cursor:pointer;
-      border:0;
     }
 
-    /* 禁用图片右键菜单（兼容性） */
-    img, .item {
-      -webkit-touch-callout: none; /* iOS Safari */
+    /* 细节：禁用图片拖拽的 pointer 事件 */
+    img.protect {
+      -webkit-user-drag:none;
+      user-drag:none;
+      user-select: none;
+      pointer-events: none;
+      width:100%;
+      height:100%;
+      object-fit:cover;
     }
 
-    /* 小屏时图片占满屏幕宽度（wrap 和 content 已处理） */
-    @media (max-width: 767px) {
-      .skeleton { height:1080px; } /* 保持骨架高度需求 */
+    /* 无障碍/屏幕阅读器隐藏提示 */
+    .sr-only {
+      position:absolute;
+      width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
     }
-
-    /* 去掉任何默认的间距/边框等 */
-    * { box-sizing:border-box; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <main class="content" id="gallery" aria-live="polite">
-      <!-- JS 会动态注入图片项（skeleton + img） -->
+  <div class="wrap" id="wrap">
+    <main class="content" id="content" role="main" aria-live="polite">
+      <section class="stack" id="stack" aria-label="作品展示">
+        <!-- JS 会把 .item（骨架或图片）插入到这里 -->
+      </section>
     </main>
   </div>
 
-  <!-- 网络异常覆盖层 -->
-  <div id="networkOverlay" class="overlay" role="alert" aria-hidden="true">
-    <div class="box">
+  <!-- 网络异常提示（JS 根据情况显示/隐藏） -->
+  <div id="errorOverlay" class="error-overlay" style="display:none;">
+    <div class="error-box">
       <p>网络异常，请重新加载</p>
-      <button id="reloadBtn" class="reload-btn">重新加载</button>
+      <button class="reload-btn" id="reloadBtn">重新加载</button>
     </div>
   </div>
 
   <script>
-    /***********************
-     * 配置区（若需修改）
-     ***********************/
-    const basePath = './images/';         // images 文件夹（相对路径）
-    const namePrefix = 'work';            // 文件名前缀 'work' -> work1.png
-    const fileExt = '.png';               // 扩展名（.png/.jpg）
-    const maxScan = 100;                  // 最大扫描数量，防止无限循环（不要改太小）
-    /*************************************************
-     * 加载逻辑说明（已实现）：
-     * - 按顺序尝试加载 work1..workN，若遇到连续 3 个不存在，则认为到末尾停止（减小 404 请求）
-     * - 每个图片项先渲染 skeleton（高度 1080），图片用 data-src，使用 IntersectionObserver 懒加载
-     * - 网络异常检测：如果 navigator.onLine 为 false，或首张图片加载 error（非 404）时显示 overlay
-     *************************************************/
+    (function(){
+      const stack = document.getElementById('stack');
+      const errorOverlay = document.getElementById('errorOverlay');
+      const reloadBtn = document.getElementById('reloadBtn');
 
-    const gallery = document.getElementById('gallery');
-    const overlay = document.getElementById('networkOverlay');
-    const reloadBtn = document.getElementById('reloadBtn');
+      // 配置（按需修改）
+      const IMG_FOLDER = 'images';
+      const FNAME_PREFIX = 'work'; // work1.png、work2.png ...
+      const FNAME_EXT = '.png';    // 如果你用jpg，改成 .jpg
+      const MAX_TRIES = 100;       // 最多尝试到 work100（通常远大于实际数量）
+      const STOP_AFTER_MISSES = 3; // 连续几张不存在就停止（避免浪费请求）
 
-    reloadBtn.addEventListener('click', () => {
-      location.reload();
-    });
+      // 当用户按下重新加载
+      reloadBtn.addEventListener('click', () => location.reload());
 
-    // 监听在线/离线
-    window.addEventListener('offline', () => showNetworkOverlay());
-    window.addEventListener('online', () => {
-      hideNetworkOverlay();
-    });
-
-    function showNetworkOverlay(){
-      overlay.style.display = 'flex';
-      overlay.setAttribute('aria-hidden', 'false');
-    }
-    function hideNetworkOverlay(){
-      overlay.style.display = 'none';
-      overlay.setAttribute('aria-hidden', 'true');
-    }
-
-    // 防止页面内图片右键、拖拽
-    document.addEventListener('contextmenu', function(e){
-      if (e.target && e.target.tagName === 'IMG') {
-        e.preventDefault();
-      }
-    });
-    document.addEventListener('dragstart', function(e){
-      if (e.target && e.target.tagName === 'IMG') e.preventDefault();
-    });
-
-    // 尝试按序检测文件是否存在，但避免浪费：连续错误计数机制
-    async function probeSequentialImages() {
-      const list = [];
-      let consecutiveMissing = 0;
-      for (let i = 1; i <= maxScan; i++) {
-        const url = basePath + namePrefix + i + fileExt;
-        try {
-          // 使用 HEAD 请求先探测（fetch HEAD）以避免完整下载
-          const res = await fetch(url, { method: 'HEAD' });
-          if (res.ok) {
-            list.push({index:i, url});
-            consecutiveMissing = 0;
-          } else {
-            // 404 或其它状态
-            consecutiveMissing++;
-            if (consecutiveMissing >= 3) break; // 连续 3 个不存在就停止（可以减少无意义请求）
-          }
-        } catch (err) {
-          // 网络错误（如离线、DNS 等）
-          // 直接显示网络异常提示并停止列举
-          console.error('probe error', err);
-          showNetworkOverlay();
-          return list;
-        }
-      }
-      return list;
-    }
-
-    // 渲染占位并设置懒加载
-    function renderList(items) {
-      if (items.length === 0) {
-        // 没有图片时展示空提示（可自定义）
-        const p = document.createElement('p');
-        p.textContent = '没有图片，请将 images/work1.png 等文件上传到 images 文件夹';
-        gallery.appendChild(p);
-        return;
-      }
-
-      // IntersectionObserver for lazy loading images
-      const io = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const img = entry.target.querySelector('img[data-src]');
-            if (img) {
-              const src = img.dataset.src;
-              // 开始加载真实图片
-              img.src = src;
-              img.onload = () => {
-                // 图片加载完后移除 skeleton（通过隐藏 skeleton 节点）
-                const sk = entry.target.querySelector('.skeleton');
-                if (sk) sk.remove();
-              };
-              img.onerror = (e) => {
-                // 如果图片 404，移除该项的 skeleton 并隐藏图片区域
-                const sk = entry.target.querySelector('.skeleton');
-                if (sk) sk.style.background = 'transparent';
-                console.error('image load error', src, e);
-                // 如果明显是网络问题（navigator.offline）显示 overlay
-                if (!navigator.onLine) showNetworkOverlay();
-              };
-              img.removeAttribute('data-src');
+      // 检测是否网络异常（尝试获取 favicon 或根目录小文件）
+      function checkNetwork() {
+        // 使用 fetch 检测网络连通性（不会受图片 404 干扰）
+        return fetch('favicon_io/favicon-32x32.png', {method:'HEAD', cache:'no-store'})
+          .then(resp => {
+            if (!resp.ok) { // 404 也可能说明文件缺失，但网络正常
+              return true; // 网络通了，但文件可能不在仓库里 —— 继续加载图片尝试
             }
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { root: null, rootMargin: '200px', threshold: 0.01 });
+            return true;
+          })
+          .catch(() => false);
+      }
 
-      // 按索引顺序渲染（items 已经是顺序）
-      items.forEach(item => {
-        const wrap = document.createElement('figure');
-        wrap.className = 'item';
+      // 禁用右键、长按、拖拽
+      document.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('dragstart', e => e.preventDefault());
+      document.addEventListener('selectstart', e => e.preventDefault());
 
+      // 创建一个带骨架的 item 占位
+      function makePlaceholder(index) {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.dataset.index = index;
         const sk = document.createElement('div');
         sk.className = 'skeleton';
-        wrap.appendChild(sk);
+        sk.setAttribute('aria-hidden','true');
+        item.appendChild(sk);
 
-        const img = document.createElement('img');
-        img.setAttribute('data-src', item.url);
-        img.alt = `work${item.index}`;
-        img.setAttribute('draggable', 'false');
-        img.setAttribute('loading', 'lazy'); // 双重保险：原生懒加载 + IntersectionObserver
-        // 禁用上下文菜单、选择
-        img.oncontextmenu = (e) => e.preventDefault();
-        img.onmousedown = (e) => { e.preventDefault(); return false; };
+        // 添加遮罩阻止长按或保存
+        const blocker = document.createElement('div');
+        blocker.className = 'blocker';
+        blocker.addEventListener('contextmenu', e => e.preventDefault());
+        item.appendChild(blocker);
 
-        wrap.appendChild(img);
-        gallery.appendChild(wrap);
-
-        io.observe(wrap);
-      });
-    }
-
-    // 主流程
-    (async function main(){
-      // 先探测图片列表
-      const items = await probeSequentialImages();
-      renderList(items);
-
-      // 如果探测时发现 navigator.offline 就立即提示
-      if (!navigator.onLine) {
-        showNetworkOverlay();
+        return item;
       }
-    })();
 
+      // 加载单张图片（使用 Image 对象检测 onload / onerror）
+      function loadImageToItem(index, itemEl) {
+        return new Promise((resolve) => {
+          const url = `${IMG_FOLDER}/${FNAME_PREFIX}${index}${FNAME_EXT}`;
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // 使用背景图替换骨架（更难被直接右键保存）
+            itemEl.style.backgroundImage = `url("${url}")`;
+            // 移除 skeleton 子元素（可用淡入效果）
+            const sk = itemEl.querySelector('.skeleton');
+            if (sk) {
+              sk.style.opacity = '0';
+              setTimeout(() => sk.remove(), 300);
+            }
+            resolve({ok:true, index, url});
+          };
+          img.onerror = () => {
+            resolve({ok:false, index, url});
+          };
+          // 开始加载（不等待全部完成再显示）
+          img.src = url;
+        });
+      }
+
+      // 主流程：检查网络 -> 顺序尝试加载 work1..workN（遇到连续 miss 停止）
+      async function init() {
+        const online = await checkNetwork();
+        if (!online) {
+          // 网络异常：显示覆盖提示
+          errorOverlay.style.display = 'flex';
+          return;
+        }
+
+        // 先插入若干个占位（为避免闪烁，初始插入较小数量；后续如果发现更多图片，会动态追加）
+        // 为了体验，这里先插入 8 个占位（你当前有8张），但代码会继续尝试找更多。
+        const initialPlaceholders = 8;
+        for (let i=1;i<=initialPlaceholders;i++){
+          stack.appendChild(makePlaceholder(i));
+        }
+
+        // 然后按序加载：从1到MAX_TRIES；遇到 STOP_AFTER_MISSES 个连续不存在则停止
+        let misses = 0;
+        let index = 1;
+        // 保证 stack 中至少有占位：如果 index > initialPlaceholders，先追加占位
+        while (index <= MAX_TRIES) {
+          // 确保对应索引存在占位 DOM
+          let existing = stack.querySelector(`.item[data-index="${index}"]`);
+          if (!existing) {
+            existing = makePlaceholder(index);
+            stack.appendChild(existing);
+          }
+          // 开始加载这张图（并行进行：但循环控制继续与否取决于结果）
+          // NOTE: We await here to detect miss/stop conditions in order.
+          const res = await loadImageToItem(index, existing);
+          if (res.ok) {
+            misses = 0; // 重置连续缺失计数
+          } else {
+            // 如果图片不存在：移除对应 DOM（避免在页面中留下空白占位）
+            // 但是要小心，如果是临时网络波动，可能把真实图片误判为不存在。
+            // 因为我们已做网络在线检测，通常 onerror = 404（文件不存在）。
+            existing.remove();
+            misses++;
+            // 如果连续缺失达到阈值，则停止尝试后续编号
+            if (misses >= STOP_AFTER_MISSES) break;
+          }
+          index++;
+        }
+
+        // 到这里已尝试完毕；如果页面没有任何图片，给出友好提示
+        if (!stack.children.length) {
+          const box = document.createElement('div');
+          box.style.padding = '60px';
+          box.style.textAlign = 'center';
+          box.innerHTML = `<p style="color:var(--white)">未找到任何作品图片。请将图片按 "work1.png, work2.png ..." 命名并上传到 /images 文件夹。</p>`;
+          stack.appendChild(box);
+        }
+      }
+
+      // 启动
+      init();
+
+      // 可选：监听在线状态变化（用户恢复网络时自动刷新）
+      window.addEventListener('online', () => location.reload());
+    })();
   </script>
 </body>
 </html>
