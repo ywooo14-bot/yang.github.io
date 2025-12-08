@@ -1,153 +1,221 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio</title>
-
-  <!-- favicon -->
-  <link rel="icon" href="favicon_io/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png" />
-
-  <style>
-    body {
-      margin: 0;
-      background: #1C1C1C;
-      padding-top: 60px;
-      font-family: sans-serif;
-      color: #fff;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      user-select: none;
-    }
-
-    .container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    img {
-      width: 65vw;
-      max-width: 1200px;
-      height: auto;
-      display: block;
-      pointer-events: none;
-    }
-
-    @media (max-width: 768px) {
-      img {
-        width: 100vw;
-      }
-    }
-
-    .skeleton {
-      background: #333;
-      width: 65vw;
-      max-width: 1200px;
-      height: 1080px;
-      margin-bottom: 0;
-      animation: pulse 1.2s infinite;
-    }
-
-    @media (max-width: 768px) {
-      .skeleton {
-        width: 100vw;
-      }
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
-    }
-
-    .error-box {
-      text-align: center;
-      margin-top: 40px;
-      display: none;
-    }
-
-    .reload-btn {
-      margin-top: 20px;
-      width: 96px;
-      height: 36px;
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人作品集</title>
+    <link rel="icon" type="image/x-icon" href="favicon_io/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1C1C1C;
+            font-family: Arial, sans-serif;
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+        
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .image-item {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0;
+        }
+        
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .error-message {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-message p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .reload-button {
+            width: 96px;
+            height: 36px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .reload-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #FFFFFF;
+        }
+        
+        /* 桌面端样式 */
+        @media (min-width: 768px) {
+            .image-item img {
+                width: 65%;
+                max-width: 1200px;
+            }
+        }
+    </style>
 </head>
-<body oncontextmenu="return false;">
-  <div class="container" id="gallery"></div>
+<body>
+    <div class="image-container" id="imageContainer">
+        <div class="loading">加载中...</div>
+    </div>
+    
+    <div class="error-message" id="errorMessage">
+        <p>网络异常，请重新加载</p>
+        <button class="reload-button" id="reloadButton">重新加载</button>
+    </div>
 
-  <div class="error-box" id="errorBox">
-    <div>网络异常，请重新加载</div>
-    <button class="reload-btn" onclick="location.reload()">重新加载</button>
-  </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      window.scrollTo(0, 0);
-
-      const gallery = document.getElementById("gallery");
-      const errorBox = document.getElementById("errorBox");
-
-      let index = 1;
-      const batch = 5;
-
-      function fileExists(url) {
-        return fetch(url, { method: 'HEAD' }).then(res => res.ok);
-      }
-
-      async function loadNextBatch() {
-        const promises = [];
-        let found = false;
-
-        for (let i = 0; i < batch; i++) {
-          const filePng = `images/work${index}.png`;
-          const fileJpg = `images/work${index}.jpg`;
-          const skeleton = document.createElement("div");
-          skeleton.className = "skeleton";
-          gallery.appendChild(skeleton);
-
-          const check = await fileExists(filePng).then(ok => ok ? filePng : fileExists(fileJpg).then(ok2 => ok2 ? fileJpg : null));
-
-          if (!check) {
-            skeleton.remove();
-            continue;
-          }
-
-          found = true;
-
-          const img = new Image();
-          img.src = check;
-          img.onload = () => skeleton.replaceWith(img);
-          img.onerror = () => {
-            skeleton.remove();
-            showError();
-          };
-
-          index++;
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 滚动到页面顶部
+            window.scrollTo(0, 0);
+            
+            // 加载图片
+            loadImages();
+            
+            // 设置重新加载按钮事件
+            document.getElementById('reloadButton').addEventListener('click', function() {
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('imageContainer').innerHTML = '<div class="loading">加载中...</div>';
+                loadImages();
+            });
+            
+            // 禁止右键菜单
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+            
+            // 禁止拖拽
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // 加载图片函数
+        function loadImages() {
+            const imageContainer = document.getElementById('imageContainer');
+            let index = 1;
+            let loadedCount = 0;
+            let hasError = false;
+            
+            // 尝试加载图片，直到连续失败多次
+            function tryLoadImage() {
+                // 尝试加载png格式
+                const imgPng = new Image();
+                imgPng.onload = function() {
+                    addImageToContainer(imgPng.src);
+                    index++;
+                    // 继续尝试加载下一张
+                    setTimeout(tryLoadImage, 100);
+                };
+                
+                imgPng.onerror = function() {
+                    // PNG加载失败，尝试JPG格式
+                    const imgJpg = new Image();
+                    imgJpg.onload = function() {
+                        addImageToContainer(imgJpg.src);
+                        index++;
+                        // 继续尝试加载下一张
+                        setTimeout(tryLoadImage, 100);
+                    };
+                    
+                    imgJpg.onerror = function() {
+                        // 两种格式都加载失败
+                        if (loadedCount === 0 && index === 1) {
+                            // 如果第一张图片就加载失败，显示错误
+                            showError();
+                        } else if (index > 1) {
+                            // 已经成功加载过图片，停止尝试
+                            if (loadedCount > 0) {
+                                // 所有图片加载完成
+                                imageContainer.innerHTML = imageContainer.innerHTML.replace('<div class="loading">加载中...</div>', '');
+                            }
+                        }
+                        // 连续失败多次后停止尝试
+                        if (index > 20) { // 安全限制，避免无限循环
+                            if (loadedCount === 0) {
+                                showError();
+                            }
+                            return;
+                        }
+                        
+                        index++;
+                        // 继续尝试加载下一张
+                        setTimeout(tryLoadImage, 100);
+                    };
+                    
+                    imgJpg.src = `images/work${index}.JPG`;
+                };
+                
+                imgPng.src = `images/work${index}.png`;
+            }
+            
+            function addImageToContainer(src) {
+                loadedCount++;
+                // 移除加载提示（如果是第一次加载图片）
+                if (loadedCount === 1) {
+                    imageContainer.innerHTML = '';
+                }
+                
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = `作品 ${loadedCount}`;
+                
+                // 添加加载错误处理
+                img.onerror = function() {
+                    this.style.display = 'none';
+                };
+                
+                imageItem.appendChild(img);
+                imageContainer.appendChild(imageItem);
+            }
+            
+            function showError() {
+                document.getElementById('errorMessage').style.display = 'flex';
+                hasError = true;
+            }
+            
+            // 开始尝试加载图片
+            tryLoadImage();
         }
-
-        if (found) {
-          if (index <= 9999) loadNextBatch();
-        }
-      }
-
-      function showError() {
-        errorBox.style.display = "block";
-      }
-
-      loadNextBatch();
-    });
-  </script>
+    </script>
 </body>
 </html>
