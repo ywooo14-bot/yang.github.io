@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>作品集</title>
 
   <!-- Favicon -->
@@ -22,58 +22,33 @@
   <style>
     :root { --bg: #1C1C1C; }
     html, body {
-      height: 100%;
-      margin: 0;
-      background: var(--bg);
-      color: #fff;
-      -webkit-font-smoothing: antialiased;
-      user-select: none;
+      height: 100%; margin: 0; background: var(--bg); color: #fff;
+      -webkit-font-smoothing: antialiased; user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    .wrap {
-      padding-top: 60px;
-      min-height: 100vh;
-    }
-    .gallery {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .wrap { padding-top: 60px; min-height: 100vh; }
+    .gallery { width: 100%; max-width: 1200px; margin: 0 auto; }
 
     .gallery img {
-      width: 100%;
-      display: block;
-      height: auto;
-      -webkit-user-drag: none;
-      user-drag: none;
+      width: 100%; display: block; height: auto;
+      -webkit-user-drag: none; user-drag: none;
       animation: fadeIn 0.5s ease;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     .loading-indicator {
-      position: fixed;
-      top: 50%;
-      left: 50%;
+      position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
       z-index: 100;
       transition: opacity 0.3s, visibility 0.3s;
     }
-    .loading-indicator.hidden {
-      opacity: 0;
-      visibility: hidden;
-    }
+    .loading-indicator.hidden { opacity: 0; visibility: hidden; }
 
     .spinner {
-      width: 50px;
-      height: 50px;
+      width: 50px; height: 50px;
       border: 3px solid rgba(255, 255, 255, .1);
       border-top-color: white;
       border-radius: 50%;
@@ -82,15 +57,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .loading-text { margin-top: 15px; }
-    .loading-progress {
-      font-size: 14px;
-      opacity: .6;
-      margin-top: 5px;
-    }
+    .loading-progress { font-size: 14px; opacity: .6; margin-top: 5px; }
 
     .skeleton-item {
-      width: 100%;
-      height: 400px;
+      width: 100%; height: 400px;
       border-radius: 8px;
       margin-bottom: 20px;
       background: linear-gradient(90deg,
@@ -102,59 +72,36 @@
       display: none;
     }
 
-    @keyframes skeleton-loading {
+    @keyframes skeleton-loading { 
       0% { background-position: 100% 50%; }
       100% { background-position: 0 50%; }
     }
 
     .overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      position: fixed; inset: 0;
+      display: flex; justify-content: center; align-items: center;
       background: rgba(0,0,0,.75);
       backdrop-filter: blur(8px);
-      opacity: 0;
-      visibility: hidden;
-      transition: .3s;
+      opacity: 0; visibility: hidden; transition: .3s;
     }
-    .overlay.show {
-      opacity: 1;
-      visibility: visible;
-    }
+    .overlay.show { opacity: 1; visibility: visible; }
 
     .card {
-      width: 90%;
-      max-width: 380px;
-      padding: 40px 30px;
-      text-align: center;
+      width: 90%; max-width: 380px;
+      padding: 40px 30px; text-align: center;
       background: rgba(255,255,255,.08);
       border-radius: 24px;
       border: 1px solid rgba(255,255,255,.1);
     }
 
     .reload-btn {
-      padding: 10px 32px;
-      border-radius: 999px;
-      background: white;
-      color: black;
-      border: none;
-      cursor: pointer;
-      margin-top: 10px;
+      padding: 10px 32px; border-radius: 999px;
+      background: white; color: black; border: none;
+      cursor: pointer; margin-top: 10px;
       font-weight: 600;
-      transition: transform 0.2s;
-    }
-    .reload-btn:hover {
-      transform: scale(1.05);
-    }
-    .reload-btn:active {
-      transform: scale(0.98);
     }
 
-    @media (min-width: 900px) {
-      .skeleton-item { height: 500px; }
-    }
+    @media (min-width: 900px) { .skeleton-item { height: 500px; } }
   </style>
 </head>
 
@@ -183,92 +130,75 @@
   </div>
 
 <script>
-/* 元素引用缓存 */
+/* ----------------------------
+   读取 works.json + 分批加载
+----------------------------- */
 const gallery = document.getElementById("gallery");
-const skeletonContainer = document.getElementById("skeletonContainer");
-const loadingIndicator = document.getElementById("loadingIndicator");
+const skeleton = document.getElementById("skeletonContainer");
+const loading = document.getElementById("loadingIndicator");
 const overlay = document.getElementById("overlay");
-const reloadBtn = document.getElementById("reloadBtn");
+document.getElementById("reloadBtn").onclick = () => location.reload();
 
-/* 配置与状态变量 */
-const BATCH_SIZE = 20; // 常量使用大写命名
 let works = [];
+let batchSize = 20;
 let currentIndex = 0;
 
-/* 初始化 */
-document.addEventListener('DOMContentLoaded', init); // 更早的初始化时机
-reloadBtn.addEventListener('click', () => location.reload());
-
-async function init() {
+window.onload = async () => {
   showSkeleton();
-  
+
   try {
     const res = await fetch("works.json");
-    if (!res.ok) throw new Error(`HTTP错误: ${res.status}`); // 处理HTTP错误状态
     works = await res.json();
-    
+
     hideLoading();
     hideSkeleton();
     loadNextBatch();
+
   } catch (err) {
-    console.error('加载失败:', err);
+    console.error(err);
     showError();
   }
-}
+};
 
-/* 分批加载图片 */
 function loadNextBatch() {
-  // 避免超出数组范围时重复加载
-  if (currentIndex >= works.length) return;
-  
-  const slice = works.slice(currentIndex, currentIndex + BATCH_SIZE);
+  const slice = works.slice(currentIndex, currentIndex + batchSize);
   slice.forEach(name => {
-    const img = new Image(); // 使用Image构造函数更语义化
-    img.src = name; // works.json中已包含images路径，避免重复拼接
-    img.classList.add('gallery-img'); // 便于样式控制
+    const img = document.createElement("img");
+    // 修正图片路径，移除重复的images/前缀
+    img.src = name;
     gallery.appendChild(img);
   });
 
-  currentIndex += BATCH_SIZE;
+  currentIndex += batchSize;
 }
 
-/* 骨架屏控制 */
 function showSkeleton() {
-  skeletonContainer.querySelectorAll('.skeleton-item')
-    .forEach(el => el.style.display = 'block');
+  [...skeleton.children].forEach(el => (el.style.display = "block"));
 }
 
 function hideSkeleton() {
-  skeletonContainer.style.display = 'none';
+  skeleton.style.display = "none";
 }
 
-/* 加载状态控制 */
 function hideLoading() {
-  loadingIndicator.classList.add('hidden');
+  loading.classList.add("hidden");
 }
 
-/* 错误处理 */
 function showError() {
   hideSkeleton();
   hideLoading();
-  overlay.classList.add('show');
+  overlay.classList.add("show");
 }
 
-/* 滚动加载优化 */
 let scrollTimer;
-window.addEventListener('scroll', () => {
+window.addEventListener("scroll", () => {
   clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(checkScrollPosition, 150);
-}, { passive: true }); // 提升滚动性能
-
-function checkScrollPosition() {
-  // 更精准的滚动判断
-  const scrollBottom = window.innerHeight + window.scrollY;
-  const pageHeight = document.documentElement.scrollHeight;
-  if (scrollBottom >= pageHeight - 400) {
-    loadNextBatch();
-  }
-};
+  scrollTimer = setTimeout(() => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) {
+      loadNextBatch();
+    }
+  }, 150);
+});
 </script>
 
 </body>
