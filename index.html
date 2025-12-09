@@ -19,7 +19,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  
+
   <!-- 为favicon添加版本号，强制更新 -->
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png?v=2">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png?v=2">
@@ -27,264 +27,193 @@
   <link rel="shortcut icon" href="/favicon_io/favicon.ico?v=2" type="image/x-icon">
 
   <style>
-    :root{
-      --bg:#1C1C1C;
-      --overlay-bg: rgba(0,0,0,0.6);
+    /* ---------- 基础样式 ---------- */
+    :root { --bg: #1C1C1C; }
+    html, body {
+      height: 100%; margin: 0; background: var(--bg); color: #fff;
+      -webkit-font-smoothing: antialiased; user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    html,body{
-      height:100%;
-      margin:0;
-      background:var(--bg);
-      color:#fff;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      user-select:none; /* 禁止选中文本 */
+    .wrap { padding-top: 60px; min-height: 100vh; box-sizing: border-box; }
+    .gallery { width: 100%; max-width: 1200px; margin: 0 auto; }
+    
+    /* ---------- 图片样式 ---------- */
+    .gallery img {
+      width: 100%; height: auto; display: block;
+      -webkit-user-drag: none; user-drag: none;
+      /* 简单的淡入动画，提升加载体验 */
+      animation: fadeIn 0.5s ease-in;
     }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* 整体容器：顶部留 60px 空间 */
-    .wrap{
-      padding-top:60px;
-      box-sizing:border-box;
-      min-height:100vh;
-    }
-
-    /* 画廊容器：单列垂直排列，居中，桌面宽度 65%，最大 1200px */
-    .gallery{
-      width:100%;
-      max-width:1200px;
-      margin:0 auto;
-      box-sizing:border-box;
-      /* 桌面占比 65%：通过媒体查询实现响应 */
-    }
-
-    /* 图片样式：宽度按容器 100%，高按比例自适应；图片间无间距 */
-    .gallery img{
-      width:100%;
-      height:auto;
-      display:block;
-      margin:0;
-      padding:0;
-      border:0;
-      -webkit-user-drag:none; /* 禁止拖拽 */
-      user-drag:none;
-    }
-
-    /* 网络异常提示覆盖层 */
+    /* ---------- 网络异常提示 (毛玻璃版) ---------- */
     .overlay {
-      position:fixed;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:var(--overlay-bg);
-      z-index:9999;
-      color:#fff;
-      text-align:center;
-      padding:20px;
-      box-sizing:border-box;
-      visibility:hidden;
-      opacity:0;
-      transition:opacity .18s ease, visibility .18s;
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
+      z-index: 9999; color: #fff; text-align: center;
+      visibility: hidden; opacity: 0; transition: 0.3s;
     }
-    .overlay.show{ visibility:visible; opacity:1; }
+    .overlay.show { visibility: visible; opacity: 1; }
+    .overlay .card {
+      width: 90%; max-width: 380px; padding: 40px 30px;
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .overlay-icon { width: 64px; height: 64px; margin-bottom: 20px; fill: #fff; opacity: 0.9; }
+    .overlay h2 { margin: 0 0 10px; font-size: 20px; }
+    .overlay p { margin: 0 0 30px; font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+    
+    /* 按钮 */
+    .reload-btn {
+      padding: 0 32px; height: 46px; border-radius: 999px;
+      background: #FFF; color: #000; font-weight: 600; border: none; cursor: pointer;
+      transition: all 0.2s; box-shadow: 0 4px 12px rgba(255,255,255,0.15);
+    }
+    .reload-btn:hover { transform: translateY(-2px); background: #f8f8f8; box-shadow: 0 8px 20px rgba(255,255,255,0.3); }
+    .reload-btn:active { transform: translateY(1px); }
 
-    .overlay .card{
-      max-width:420px;
-      width:100%;
-    }
-    .overlay h2{
-      margin:0 0 20px;
-      font-weight:600;
-      font-size:18px;
-    }
-
-    .reload-btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:96px;
-      height:36px;
-      border-radius:4px;
-      background: rgba(255,255,255,0.2); /* 白色 20% 透明度 */
-      color:#FFFFFF;
-      font-size:14px;
-      border: none;
-      cursor:pointer;
-    }
-
-    /* 响应式：桌面视口宽度 >= 900px 时，容器为窗口的 65% */
-    @media(min-width:900px){
-      .gallery{
-        width:65vw;
-        max-width:1200px;
-      }
-    }
-
-    /* 移动端：图片已在容器 100%，viewport 会保证屏幕宽度 */
+    /* ---------- 响应式 ---------- */
+    @media (min-width: 900px) { .gallery { width: 65vw; } }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <main class="gallery" id="gallery" aria-live="polite"></main>
+    <main class="gallery" id="gallery"></main>
   </div>
 
-  <!-- 网络异常覆盖 -->
-  <div class="overlay" id="overlay" role="alertdialog" aria-hidden="true">
+  <div class="overlay" id="overlay">
     <div class="card">
-      <h2 id="overlay-msg">网络异常，请重新加载</h2>
-      <div style="height:20px"></div>
-      <div style="display:flex; justify-content:center;">
-        <button class="reload-btn" id="reloadBtn" type="button">重新加载</button>
-      </div>
+      <svg class="overlay-icon" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <h2 id="overlay-msg">加载遇到问题</h2>
+      <p>网络连接似乎有些不稳定<br>请检查连接后点击按钮重试</p>
+      <button class="reload-btn" id="reloadBtn">重新加载页面</button>
     </div>
   </div>
 
   <script>
-    (function(){
-      // 配置
-      const gallery = document.getElementById('gallery');
-      const overlay = document.getElementById('overlay');
-      const reloadBtn = document.getElementById('reloadBtn');
+    // --- 配置 ---
+    const CONFIG = {
+      maxIndex: 5000,       // 最大编号
+      stopThreshold: 6,     // 连续失败停止阈值
+      concurrency: 5,       // 并发请求数量 (同时查5张)
+      exts: ['.png', '.jpg', '.jpeg', '.webp']
+    };
 
-      // 尝试的最大编号上限（安全界限，避免无限尝试）
-      const ABSOLUTE_MAX = 5000;
+    // --- 状态 ---
+    const state = {
+      currentIndex: 1,      // 当前正在处理的序号
+      renderIndex: 1,       // 当前可以渲染到界面的序号 (保证顺序)
+      failCount: 0,
+      activeRequests: 0,    // 当前活跃的请求数
+      buffer: {},           // 缓存已下载但未显示的图片 { index: imgElement }
+      isStopped: false
+    };
 
-      // 当连续这个数目的索引都不存在时，认为目录扫描结束
-      const CONSECUTIVE_FAILURES_TO_STOP = 6;
+    const els = {
+      gallery: document.getElementById('gallery'),
+      overlay: document.getElementById('overlay'),
+      msg: document.getElementById('overlay-msg'),
+      btn: document.getElementById('reloadBtn')
+    };
 
-      // 尝试的扩展名顺序（优先 png，再 jpg/jpeg）
-      const exts = ['.png', '.jpg', '.jpeg', '.webp'];
+    // --- 初始化 ---
+    window.onload = () => { window.scrollTo(0,0); startLoading(); };
+    els.btn.onclick = () => location.reload();
+    setupProtection();
 
-      let index = 1;
-      let consecutiveFailures = 0;
-      let loadedCount = 0;
-
-      // 刷新后自动回到顶部
-      window.addEventListener('load', () => window.scrollTo(0,0), {once:true});
-
-      // 重载按钮
-      reloadBtn.addEventListener('click', () => {
-        location.reload();
-      });
-
-      // 当网络离线时显示 overlay
-      function showOverlay(msg) {
-        document.getElementById('overlay-msg').textContent = msg || '网络异常，请重新加载';
-        overlay.classList.add('show');
-        overlay.setAttribute('aria-hidden','false');
+    // --- 核心加载逻辑 ---
+    function startLoading() {
+      // 只要没停止，且活跃请求没满，就发射新请求
+      while (!state.isStopped && state.activeRequests < CONFIG.concurrency) {
+        processIndex(state.currentIndex++);
       }
-      function hideOverlay(){
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden','true');
-      }
+    }
 
-      // 监听在线状态变化
-      window.addEventListener('offline', () => showOverlay('网络异常，请重新加载'));
-      window.addEventListener('online', () => {
-        // 尝试隐藏并继续加载
-        hideOverlay();
-        // 若之前没有加载任何图片，重试一轮
-        if (loadedCount === 0) {
-          // reset scanning and try again from 1
-          index = 1;
-          consecutiveFailures = 0;
-          scanNext();
-        }
-      });
+    async function processIndex(idx) {
+      if (idx > CONFIG.maxIndex) return;
+      
+      state.activeRequests++;
+      let img = null;
 
-      // 禁用右键菜单、拖拽、复制、另存为等常规方法（无法 100% 阻止保存，但可以阻挡常见手段）
-      window.addEventListener('contextmenu', e => e.preventDefault());
-      window.addEventListener('dragstart', e => e.preventDefault());
-      window.addEventListener('selectstart', e => e.preventDefault());
-      window.addEventListener('copy', e => e.preventDefault());
-      // 阻止常见快捷键（Ctrl/Cmd+S, Ctrl+U, Ctrl+Shift+I）
-      window.addEventListener('keydown', function(e){
-        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) {
-          e.preventDefault();
+      // 尝试所有后缀
+      for (let ext of CONFIG.exts) {
+        const path = `images/work${idx}${ext}`;
+        const res = await testImage(path);
+        if (res) {
+          img = createImg(path);
+          break; // 找到即止
         }
-        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
-          e.preventDefault();
-        }
-      });
-
-      // 创建 img 元素并按顺序插入
-      function createImageElement(src){
-        const img = document.createElement('img');
-        img.src = src;
-        img.alt = ''; // 仅图片展示，不显示额外文字
-        img.loading = 'eager'; // 立即加载以尽可能快地显示
-        img.draggable = false;
-        // 若某张图片加载出错，则在控制台记录（并继续）
-        img.addEventListener('error', (e) => {
-          // nothing here — handled where Image object is used
-        });
-        return img;
       }
 
-      // 检查指定路径（通过 Image 对象）是否可加载
-      function testImage(path){
-        return new Promise((resolve) => {
-          const im = new Image();
-          im.onload = () => resolve({ok:true, path});
-          im.onerror = () => resolve({ok:false, path});
-          // force no-cache attempt (避免某些环境缓存 404) — 仅当服务器允许
-          im.src = path;
-        });
-      }
+      state.activeRequests--;
+      handleResult(idx, img);
+      
+      // 递归维持并发
+      startLoading();
+    }
 
-      // 扫描并加载下一张图片（递归式）
-      async function scanNext(){
-        // safety stop
-        if (index > ABSOLUTE_MAX) return finalize();
-        // 尝试所有后缀
-        let found = false;
-        for (let ext of exts){
-          const path = `images/work${index}${ext}`;
-          const res = await testImage(path);
-          if (res.ok){
-            // 成功：重置失败计数，插入图片（按序）
-            consecutiveFailures = 0;
-            loadedCount++;
-            const imgEl = createImageElement(path);
-            gallery.appendChild(imgEl);
-            found = true;
-            break;
-          }
-        }
-        if (!found){
-          consecutiveFailures++;
+    function handleResult(idx, imgElement) {
+      // 1. 存入缓存或标记失败
+      state.buffer[idx] = imgElement; // 没找到就是 null
+
+      // 2. 尝试按顺序渲染 (必须等待 renderIndex 对应的图片处理完)
+      while (state.buffer.hasOwnProperty(state.renderIndex)) {
+        const currentImg = state.buffer[state.renderIndex];
+        
+        if (currentImg) {
+          // 成功：重置失败计数，上屏
+          state.failCount = 0;
+          els.gallery.appendChild(currentImg);
+        } else {
+          // 失败：增加计数
+          state.failCount++;
         }
 
-        // 当没有加载过任何图片且网络不在线，直接显示网络错误
-        if (loadedCount === 0 && !navigator.onLine){
-          showOverlay('网络异常，请重新加载');
+        // 清理缓存，指针后移
+        delete state.buffer[state.renderIndex];
+        state.renderIndex++;
+
+        // 检查停止条件
+        if (state.failCount >= CONFIG.stopThreshold) {
+          state.isStopped = true;
+          // 如果一张图都没刷出来，报错
+          if (els.gallery.children.length === 0) showOverlay();
           return;
         }
-
-        // 如果连续失败达到阈值，认为目录末尾，结束扫描
-        if (consecutiveFailures >= CONSECUTIVE_FAILURES_TO_STOP){
-          return finalize();
-        }
-
-        index++;
-        // 继续下一张
-        // small microtask break to keep UI responsive
-        setTimeout(scanNext, 0);
       }
+    }
 
-      function finalize(){
-        // 如果一张图片都没有加载，认为可能是网络问题或 images 文件夹位置不对，提示并保留重试按钮
-        if (loadedCount === 0){
-          showOverlay('网络异常，请重新加载');
-        } else {
-          hideOverlay();
-        }
-      }
+    // --- 辅助函数 ---
+    function createImg(src) {
+      const img = document.createElement('img');
+      img.src = src;
+      // 这里的策略：前3张 eager (立即)，后面 lazy (懒加载)
+      img.loading = els.gallery.children.length < 3 ? 'eager' : 'lazy';
+      return img;
+    }
 
-      // 启动扫描
-      scanNext();
+    function testImage(path) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = path;
+      });
+    }
 
-    })();
+    function showOverlay(msg) {
+      if (msg) els.msg.textContent = msg;
+      els.overlay.classList.add('show');
+    }
+
+    function setupProtection() {
+      // 简单保护：禁右键、拖拽
+      document.oncontextmenu = document.ondragstart = () => false;
+      window.onkeydown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && ['s','u'].includes(e.key.toLowerCase())) e.preventDefault();
+      };
+    }
   </script>
 </body>
 </html>
